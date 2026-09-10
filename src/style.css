@@ -140,7 +140,7 @@ button{ font-family: inherit; cursor: pointer; }
   display: flex; align-items: center; justify-content: center; margin: 0 auto 0.7rem;
   font-family: 'Fraunces', serif; font-size: 1.3rem;
 }
-.player-option .name{ font-weight: 600; }
+.player-option .name{ font-size: 1.1rem; font-weight: 700; color: var(--accent); }
 
 .welcome-banner{
   font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.3rem;
@@ -177,8 +177,9 @@ button{ font-family: inherit; cursor: pointer; }
   background: var(--surface); border: 1.5px solid var(--border-strong); color: var(--text);
 }
 .lesson-row.done .status{ background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-.lesson-row .name{ flex: 1; font-size: 0.92rem; }
-.lesson-row.final .name{ font-weight: 600; }
+.lesson-row .name{ flex: 1; font-size: 1.05rem; font-weight: 600; color: var(--accent); }
+.lesson-row.locked .name{ color: var(--text); }
+.lesson-row.final .name{ font-weight: 700; }
 .lesson-row .xp{ font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--accent); white-space: nowrap; }
 
 .locked-world{
@@ -295,7 +296,7 @@ button{ font-family: inherit; cursor: pointer; }
   .locked-world{ padding: 1rem 1.1rem; flex-direction: column; align-items: flex-start; }
 
   .lesson-row{ padding: 0.6rem 0.7rem; gap: 0.6rem; }
-  .lesson-row .name{ font-size: 0.88rem; }
+  .lesson-row .name{ font-size: 0.98rem; }
   .lesson-row .xp{ font-size: 0.7rem; }
 
   .lesson-header{ flex-direction: column; align-items: flex-start; }
