@@ -29,7 +29,7 @@ function levelFor(xp) {
 }
 
 const state = {
-  screen: "picker", // picker | map | lesson | world-complete
+  screen: "picker", // picker | loading | map | lesson | world-complete
   player: null,
   xp: 0,
   completed: new Set(),
@@ -179,7 +179,7 @@ function renderPicker() {
       state.drafts = {};
       state.revealedHints = {};
       state.quizAnswers = {};
-      navigate("map");
+      navigate("loading");
 
       try {
         const saved = await fetchProgress(player);
@@ -189,14 +189,24 @@ function renderPicker() {
         state.quizAnswers = saved.quizAnswers || {};
         state.revealedHints = saved.revealedHints || {};
         state.backendStatus = "online";
-        if (state.screen === "map") renderMap();
       } catch (err) {
         console.warn("No se pudo cargar el progreso guardado:", err.message);
         state.backendStatus = "offline";
-        updateBackendStatusUI();
       }
+      if (state.player === player) navigate("map");
     });
   });
+}
+
+function renderLoading() {
+  app.innerHTML = `
+    <div class="picker">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando tu progreso…</p>
+      </div>
+    </div>
+  `;
 }
 
 function renderMap() {
@@ -542,6 +552,7 @@ function render() {
     editorView = null;
   }
   if (state.screen === "picker") return renderPicker();
+  if (state.screen === "loading") return renderLoading();
   if (state.screen === "map") return renderMap();
   if (state.screen === "lesson") return renderLesson();
   if (state.screen === "world-complete") return renderWorldComplete();
