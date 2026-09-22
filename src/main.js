@@ -4,10 +4,12 @@ import { EditorView, basicSetup } from "codemirror";
 import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { world, lessons } from "./lessons.js";
-import { loadPyodideRuntime, runLesson } from "./pyRunner.js";
+import { loadPyodideRuntime, runLesson, runFreeCode } from "./pyRunner.js";
 import { checkBackendHealth, fetchProgress, saveProgress } from "./progress.js";
 
 const app = document.getElementById("app");
+
+const PLAYER_ID = "Jugador";
 
 const LEVELS = [
   { name: "Aprendiz Errante", xp: 0 },
@@ -29,8 +31,8 @@ function levelFor(xp) {
 }
 
 const state = {
-  screen: "picker", // picker | loading | map | lesson | world-complete
-  player: null,
+  screen: "loading", // loading | map | lesson | world-complete | playground
+  player: PLAYER_ID,
   xp: 0,
   completed: new Set(),
   drafts: {},
@@ -110,8 +112,12 @@ function navigate(screen, extra = {}) {
 app.addEventListener("click", (event) => {
   const actionTarget = event.target.closest("[data-action]");
   if (actionTarget) {
-    if (actionTarget.dataset.action === "switch-player") navigate("picker");
-    if (actionTarget.dataset.action === "back-to-map") navigate("map");
+    const action = actionTarget.dataset.action;
+    if (action === "back-to-map") navigate("map");
+    if (action === "nav-map") navigate("map");
+    if (action === "nav-playground") navigate("playground");
+    if (action === "toggle-sidebar") toggleSidebar();
+    if (action === "close-sidebar") toggleSidebar(false);
     return;
   }
 
@@ -130,72 +136,49 @@ app.addEventListener("click", (event) => {
   }
 });
 
+function toggleSidebar(force) {
+  const sidebar = document.querySelector(".sidebar");
+  const overlay = document.querySelector(".sidebar-overlay");
+  if (!sidebar) return;
+  const open = force !== undefined ? force : !sidebar.classList.contains("open");
+  sidebar.classList.toggle("open", open);
+  overlay?.classList.toggle("open", open);
+}
+
+function sidebarHtml() {
+  return `
+    <div class="sidebar-overlay" data-action="close-sidebar"></div>
+    <nav class="sidebar">
+      <div class="sidebar-head">
+        <span class="eyebrow">Menú</span>
+        <button class="icon-btn" data-action="close-sidebar" aria-label="Cerrar menú">✕</button>
+      </div>
+      <button class="sidebar-item ${state.screen === "map" ? "active" : ""}" data-action="nav-map">🗺️ Mapa de mundos</button>
+      <button class="sidebar-item ${state.screen === "playground" ? "active" : ""}" data-action="nav-playground">🐍 Editor libre de Python</button>
+    </nav>
+  `;
+}
+
 function topbarHtml() {
   const level = levelFor(state.xp);
   return `
     <div class="topbar">
-      <div class="brand">
-        <h1>Pythonia</h1>
-        <span class="eyebrow">${world.title}</span>
+      <div style="display:flex; align-items:center; gap:0.8rem;">
+        <button class="icon-btn" data-action="toggle-sidebar" aria-label="Abrir menú">☰</button>
+        <div class="brand">
+          <h1>Pythonia</h1>
+          <span class="eyebrow">${world.title}</span>
+        </div>
       </div>
       <div style="display:flex; align-items:center; gap:0.7rem;">
-        <span class="player-badge">${state.player} · ${level.name}</span>
+        <span class="player-badge">${level.name}</span>
         <span class="xp-counter" id="xp-counter">✦ ${state.xp} XP</span>
         <span class="backend-status ${state.backendStatus}" id="backend-status">${
           { checking: "⏳ conectando…", online: "☁ guardado", offline: "⚠ sin conexión al servidor" }[state.backendStatus]
         }</span>
-        <button class="btn-link" data-action="switch-player">cambiar jugador</button>
       </div>
     </div>
   `;
-}
-
-function renderPicker() {
-  app.innerHTML = `
-    <div class="picker">
-      <div class="picker-card">
-        <span class="eyebrow">Pythonia</span>
-        <h1>¿Quién explora hoy?</h1>
-        <p>Elige tu perfil para empezar (o continuar) el Mundo 1 · Los Cimientos.</p>
-        <div class="player-options">
-          <button class="player-option" data-player="Cata">
-            <div class="avatar">C</div>
-            <div class="name">Cata</div>
-          </button>
-          <button class="player-option" data-player="Jugador 2">
-            <div class="avatar">2</div>
-            <div class="name">Jugador 2</div>
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-  app.querySelectorAll("[data-player]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const player = btn.dataset.player;
-      state.player = player;
-      state.xp = 0;
-      state.completed = new Set();
-      state.drafts = {};
-      state.revealedHints = {};
-      state.quizAnswers = {};
-      navigate("loading");
-
-      try {
-        const saved = await fetchProgress(player);
-        if (state.player !== player) return; // el jugador cambió mientras cargaba
-        state.xp = saved.xp || 0;
-        state.completed = new Set(saved.completed || []);
-        state.quizAnswers = saved.quizAnswers || {};
-        state.revealedHints = saved.revealedHints || {};
-        state.backendStatus = "online";
-      } catch (err) {
-        console.warn("No se pudo cargar el progreso guardado:", err.message);
-        state.backendStatus = "offline";
-      }
-      if (state.player === player) navigate("map");
-    });
-  });
 }
 
 function renderLoading() {
@@ -227,9 +210,9 @@ function renderMap() {
     .join("");
 
   app.innerHTML = `
+    ${sidebarHtml()}
     <div class="shell">
       ${topbarHtml()}
-      ${state.player === "Cata" ? `<div class="welcome-banner">Bienvenida, Cata 💙</div>` : ""}
 
       <div class="world-card">
         <div class="mundo-head" style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.5rem;">
@@ -267,6 +250,7 @@ function renderMap() {
 
 function renderWorldComplete() {
   app.innerHTML = `
+    ${sidebarHtml()}
     <div class="shell">
       ${topbarHtml()}
       <div class="complete-card">
@@ -275,7 +259,7 @@ function renderWorldComplete() {
         </div>
         <span class="eyebrow">Insignia obtenida</span>
         <h2>${world.badge.title}</h2>
-        <p>${world.badge.description} — ¡Mundo 1 completo! Sumaste ${state.xp} XP como ${state.player}. Ahora eres <strong>${levelFor(state.xp).name}</strong>.</p>
+        <p>${world.badge.description} — ¡Mundo 1 completo! Sumaste ${state.xp} XP. Ahora eres <strong>${levelFor(state.xp).name}</strong>.</p>
         <div style="margin-top:1.5rem;">
           <button class="btn primary" data-action="back-to-map">Volver al mapa</button>
         </div>
@@ -346,6 +330,7 @@ function renderLesson() {
   const revealed = state.revealedHints[lesson.id] || 0;
 
   app.innerHTML = `
+    ${sidebarHtml()}
     <div class="shell">
       ${topbarHtml()}
       <button class="btn-link" data-action="back-to-map">&larr; volver al mapa</button>
@@ -471,6 +456,18 @@ function updatePyodideStatusUI() {
   } else if (textEl && state.pyodideReady && textEl.textContent.includes("Cargando")) {
     textEl.textContent = "Python listo. Escribe tu código y presiona «Ejecutar y comprobar».";
   }
+
+  const pgRunBtn = document.getElementById("playground-run-btn");
+  const pgTextEl = document.getElementById("playground-console-text");
+  if (pgRunBtn) {
+    pgRunBtn.disabled = !state.pyodideReady;
+    pgRunBtn.textContent = state.pyodideReady ? "▶ Ejecutar" : "Cargando Python…";
+  }
+  if (pgTextEl && !state.pyodideReady) {
+    pgTextEl.textContent = state.pyodideStatus || "";
+  } else if (pgTextEl && state.pyodideReady && pgTextEl.textContent.includes("Cargando")) {
+    pgTextEl.textContent = "Python listo. Escribe tu código y presiona «Ejecutar».";
+  }
 }
 
 async function handleRun() {
@@ -545,17 +542,129 @@ function showSuccessPanel(lesson, { message, alreadyDone } = {}) {
   });
 }
 
-function render() {
-  document.body.classList.toggle("theme-blue", state.player === "Cata");
-  if (editorView && state.screen !== "lesson") {
+function renderPlayground() {
+  app.innerHTML = `
+    ${sidebarHtml()}
+    <div class="shell">
+      ${topbarHtml()}
+
+      <div class="lesson-header" style="margin-top:1rem;">
+        <h2>Editor libre de Python</h2>
+      </div>
+      <p>Escribe cualquier código Python y ejecútalo. No afecta tu progreso ni tu XP — es solo para practicar.</p>
+
+      <div class="editor-wrap" style="margin-top:1.2rem;">
+        <div class="editor-bar"><span></span><span></span><span></span></div>
+        <div id="playground-editor"></div>
+      </div>
+
+      <div class="actions-row">
+        <button class="btn primary" id="playground-run-btn" ${state.pyodideReady ? "" : "disabled"}>
+          ${state.pyodideReady ? "▶ Ejecutar" : "Cargando Python…"}
+        </button>
+        <button class="btn" id="playground-clear-btn">Limpiar consola</button>
+      </div>
+
+      <div class="console" id="playground-console">
+        <span class="console-label">Salida</span>
+        <span id="playground-console-text">${
+          state.pyodideReady ? "Escribe tu código y presiona «Ejecutar»." : state.pyodideStatus || ""
+        }</span>
+      </div>
+    </div>
+  `;
+
+  mountPlaygroundEditor(document.getElementById("playground-editor"));
+
+  document.getElementById("playground-run-btn").addEventListener("click", handlePlaygroundRun);
+  document.getElementById("playground-clear-btn").addEventListener("click", () => {
+    setPlaygroundConsole("Consola limpiada.", "neutral");
+  });
+}
+
+function mountPlaygroundEditor(container) {
+  if (editorView) {
     editorView.destroy();
     editorView = null;
   }
-  if (state.screen === "picker") return renderPicker();
+  const initialCode = state.playgroundCode ?? 'print("Hello world")';
+  editorView = new EditorView({
+    state: EditorState.create({
+      doc: initialCode,
+      extensions: [
+        basicSetup,
+        python(),
+        oneDark,
+        EditorView.lineWrapping,
+        EditorView.updateListener.of((update) => {
+          if (update.docChanged) {
+            state.playgroundCode = update.state.doc.toString();
+          }
+        }),
+      ],
+    }),
+    parent: container,
+  });
+}
+
+function setPlaygroundConsole(text, kind = "neutral") {
+  const consoleEl = document.getElementById("playground-console");
+  const textEl = document.getElementById("playground-console-text");
+  if (!consoleEl || !textEl) return;
+  consoleEl.classList.remove("has-error", "has-success");
+  if (kind === "error") consoleEl.classList.add("has-error");
+  if (kind === "success") consoleEl.classList.add("has-success");
+  textEl.textContent = text;
+}
+
+async function handlePlaygroundRun() {
+  const runBtn = document.getElementById("playground-run-btn");
+  runBtn.disabled = true;
+  runBtn.textContent = "Ejecutando…";
+  setPlaygroundConsole("Ejecutando tu código…", "neutral");
+
+  try {
+    const pyodide = await loadPyodideRuntime();
+    const code = editorView.state.doc.toString();
+    const result = await runFreeCode(pyodide, code);
+
+    if (!result.success) {
+      setPlaygroundConsole((result.output ? result.output + "\n\n" : "") + "Error: " + result.error, "error");
+    } else {
+      setPlaygroundConsole(result.output || "(sin salida impresa)", "success");
+    }
+  } catch (err) {
+    setPlaygroundConsole("Error inesperado ejecutando Python: " + err.message, "error");
+  } finally {
+    runBtn.disabled = !state.pyodideReady;
+    runBtn.textContent = "▶ Ejecutar";
+  }
+}
+
+function render() {
+  if (editorView && state.screen !== "lesson" && state.screen !== "playground") {
+    editorView.destroy();
+    editorView = null;
+  }
   if (state.screen === "loading") return renderLoading();
   if (state.screen === "map") return renderMap();
   if (state.screen === "lesson") return renderLesson();
   if (state.screen === "world-complete") return renderWorldComplete();
+  if (state.screen === "playground") return renderPlayground();
 }
 
-render();
+(async function boot() {
+  render(); // pantalla de carga mientras llega el progreso guardado
+  try {
+    const saved = await fetchProgress(state.player);
+    state.xp = saved.xp || 0;
+    state.completed = new Set(saved.completed || []);
+    state.quizAnswers = saved.quizAnswers || {};
+    state.revealedHints = saved.revealedHints || {};
+    state.backendStatus = "online";
+  } catch (err) {
+    console.warn("No se pudo cargar el progreso guardado:", err.message);
+    state.backendStatus = "offline";
+  }
+  navigate("map");
+})();

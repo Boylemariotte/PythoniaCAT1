@@ -89,6 +89,39 @@ export async function runLesson(pyodide, lesson, code) {
   };
 }
 
+/**
+ * Ejecuta código Python arbitrario (sin validador ni variables esperadas) y
+ * devuelve la salida capturada. Para el editor libre del panel lateral.
+ */
+export async function runFreeCode(pyodide, code) {
+  const outputLines = [];
+
+  pyodide.setStdout({
+    batched: (line) => outputLines.push(line),
+  });
+  pyodide.setStderr({
+    batched: (line) => outputLines.push(line),
+  });
+  pyodide.globals.set("input", (prompt = "") => window.prompt(prompt) ?? "");
+
+  let runError = null;
+  try {
+    await pyodide.runPythonAsync(code);
+  } catch (err) {
+    runError = err;
+  } finally {
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+
+  const output = outputLines.join("\n");
+
+  if (runError) {
+    return { success: false, output, error: cleanErrorMessage(String(runError.message || runError)) };
+  }
+  return { success: true, output };
+}
+
 function cleanErrorMessage(message) {
   const lines = message.trim().split("\n");
   return lines[lines.length - 1] || message;

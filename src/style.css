@@ -37,7 +37,7 @@
   }
 }
 
-/* ---- Tema de Cata: le gusta el azul, así que su sesión cambia toda la paleta (fondo incluido) de verde a azul ---- */
+/* ---- Tema azul (por defecto): sobreescribe la paleta verde de :root ---- */
 body.theme-blue{
   --bg: #0A1220;
   --surface: #111D33;
@@ -125,23 +125,37 @@ button{ font-family: inherit; cursor: pointer; }
 .btn.primary:hover{ color: var(--on-accent); opacity: 0.9; }
 .btn:disabled{ opacity: 0.4; cursor: not-allowed; }
 
-/* ---- Player picker ---- */
-.picker{ min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
-.picker-card{ max-width: 480px; text-align: center; }
-.picker-card h1{ font-size: 2.2rem; margin-bottom: 0.6rem; }
-.player-options{ display: flex; gap: 1rem; margin-top: 2rem; justify-content: center; flex-wrap: wrap; }
-.player-option{
-  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-  padding: 1.4rem 1.8rem; box-shadow: var(--shadow); min-width: 160px;
+/* ---- Sidebar ---- */
+.icon-btn{
+  background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+  font-size: 1rem; padding: 0.35rem 0.6rem; line-height: 1;
 }
-.player-option:hover{ border-color: var(--accent); }
-.player-option .avatar{
-  width: 3rem; height: 3rem; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
-  display: flex; align-items: center; justify-content: center; margin: 0 auto 0.7rem;
-  font-family: 'Fraunces', serif; font-size: 1.3rem;
-}
-.player-option .name{ font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.icon-btn:hover{ border-color: var(--accent); color: var(--accent); }
 
+.sidebar-overlay{
+  position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 40;
+}
+.sidebar-overlay.open{ opacity: 1; pointer-events: auto; }
+
+.sidebar{
+  position: fixed; top: 0; left: 0; bottom: 0; width: 260px; max-width: 82vw;
+  background: var(--surface); border-right: 1px solid var(--border);
+  transform: translateX(-100%); transition: transform 0.25s ease;
+  z-index: 41; display: flex; flex-direction: column; padding: 1.2rem 1rem;
+  box-shadow: var(--shadow);
+}
+.sidebar.open{ transform: translateX(0); }
+.sidebar-head{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+.sidebar-item{
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  color: var(--text); font-size: 0.95rem; padding: 0.7rem 0.6rem; border-radius: 8px; margin-bottom: 0.2rem;
+}
+.sidebar-item:hover{ background: var(--surface-2); }
+.sidebar-item.active{ background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+
+/* ---- Loading ---- */
+.picker{ min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
 .loading-state{ display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 .loading-state p{ font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--text-dim); }
 .spinner{
@@ -150,12 +164,6 @@ button{ font-family: inherit; cursor: pointer; }
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin{ to{ transform: rotate(360deg); } }
-
-.welcome-banner{
-  font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.3rem;
-  color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent);
-  border-radius: 12px; padding: 0.8rem 1.2rem; margin-bottom: 1.2rem;
-}
 
 /* ---- World map ---- */
 .world-card{
@@ -295,11 +303,6 @@ button{ font-family: inherit; cursor: pointer; }
   .topbar .brand h1{ font-size: 1.2rem; }
 
   .picker{ padding: 1.2rem; }
-  .picker-card h1{ font-size: 1.6rem; }
-  .player-options{ flex-direction: column; align-items: stretch; }
-  .player-option{ min-width: 0; padding: 1.1rem 1.4rem; }
-
-  .welcome-banner{ font-size: 1.05rem; padding: 0.7rem 1rem; }
 
   .world-card{ padding: 1.2rem 1.1rem; }
   .locked-world{ padding: 1rem 1.1rem; flex-direction: column; align-items: flex-start; }
@@ -326,5 +329,4 @@ button{ font-family: inherit; cursor: pointer; }
 
 @media (max-width: 380px){
   .topbar .player-badge{ display: none; }
-  .picker-card h1{ font-size: 1.4rem; }
 }
