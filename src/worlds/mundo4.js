@@ -79,6 +79,7 @@ perro.___()            # llama a hacer_sonido() sobre perro
 gato.___()              # llama a hacer_sonido() sobre gato
 `,
     expectedVars: [],
+    expected: { output: "¡Soy una mascota genérica!\n¡Soy una mascota genérica!" },
     hints: [
       "Crear un objeto se hace como llamar a una función: perro = Mascota().",
       "Llamar a un método sobre un objeto se hace con un punto: perro.hacer_sonido().",
@@ -168,6 +169,7 @@ conan = Guerrero("Conan", 15)
 conan.atacar()
 `,
     expectedVars: [],
+    expected: { output: "Conan ataca causando 30 de daño" },
     hints: [
       "Dentro de __init__, cada parámetro se guarda como atributo con self: self.nombre = nombre y self.fuerza = fuerza.",
       "El daño es el doble de la fuerza: dano = self.fuerza * 2.",
@@ -262,6 +264,7 @@ michi.hacer_sonido()            # heredado de Animal
 michi.___()                      # propio de Gato
 `,
     expectedVars: [],
+    expected: { output: "Michi hace un sonido\nMichi ronronea felizmente" },
     hints: [
       "Para heredar, el nombre de la clase padre va entre paréntesis: class Gato(Animal):",
       "El método propio de Gato se llama igual que se definió: michi.ronronear().",
@@ -357,6 +360,7 @@ for enemigo in enemigos:
     enemigo.___()
 `,
     expectedVars: [],
+    expected: { output: "El enemigo ataca de forma genérica\nEl mago lanza una bola de fuego" },
     hints: [
       "Mago hereda igual que en la lección anterior: class Mago(Enemigo):",
       'Dentro del atacar() de Mago, imprime exactamente: "El mago lanza una bola de fuego". Y dentro del for, llama a enemigo.atacar().',
@@ -475,6 +479,15 @@ for criatura in bestiario:
 print(f"Vida total del bestiario: {vida_total}")
 `,
     expectedVars: ["vida_total"],
+    expected: {
+      output: [
+        "Fafnir escupe fuego causando 30 de daño",
+        "Roca Viviente lanza un puñetazo de piedra causando 20 de daño",
+        "Sombra ataca de forma genérica",
+        "Vida total del bestiario: 400",
+      ].join("\n"),
+      vars: { vida_total: 400 },
+    },
     hints: [
       "Dentro de __init__ de Criatura: self.nombre = nombre y self.vida = vida. Dragon y Golem heredan escribiendo Criatura entre paréntesis.",
       "Dentro del for: criatura.atacar() llama al ataque de cada una (genérico o sobrescrito, según su clase), y vida_total = vida_total + criatura.vida acumula la suma.",

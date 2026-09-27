@@ -158,6 +158,7 @@ print("Total a pagar:", total)
 print("¿Alcanza el oro?", alcanza)
 `,
     expectedVars: ["total", "alcanza"],
+    expected: { vars: { total: 306, alcanza: false } },
     hints: [
       "El subtotal es precio * cantidad. Para restar el 15%, multiplica ese subtotal por (1 - 0.15).",
       "alcanza se compara con >=: oro_disponible >= total.",
@@ -339,6 +340,7 @@ print(f"¡Bienvenido, {nombre}! A tus {edad} años, tu aventura en Pythonia comi
 `,
     expectedVars: ["nombre", "edad"],
     simulatedInputs: ["Ada", "16"],
+    expected: { vars: { nombre: "Ada", edad: 16 } },
     hints: [
       "input() siempre devuelve texto. Para convertirlo a número entero, envuélvelo con int(...).",
       'Prueba: edad = int(input("¿Cuántos años tienes? "))',
@@ -422,6 +424,7 @@ print(titulo)
 `,
     expectedVars: ["nombre", "edad", "anio_nacimiento", "titulo"],
     simulatedInputs: ["Ada", "16"],
+    expected: { vars: { nombre: "Ada", edad: 16, anio_nacimiento: 2010 } },
     hints: [
       "Los dos primeros datos se piden igual que en la lección anterior: input() para el nombre, int(input()) para la edad.",
       "anio_nacimiento = anio_actual - edad. Luego arma titulo con un f-string que use nombre, edad y anio_nacimiento.",

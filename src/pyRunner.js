@@ -1,6 +1,8 @@
 // Envuelve Pyodide (Python real compilado a WebAssembly) para ejecutar
 // el código de cada lección y compararlo contra lo que se espera.
 
+import { explainPythonError } from "./pyErrors.js";
+
 let pyodideReadyPromise = null;
 
 export function loadPyodideRuntime(onStatus) {
@@ -112,6 +114,7 @@ export async function runLesson(pyodide, lesson, code) {
       success: false,
       output,
       error: cleanErrorMessage(String(runError.message || runError)),
+      errorInfo: explainPythonError(String(runError.message || runError), code),
     };
   }
 
@@ -126,6 +129,7 @@ export async function runLesson(pyodide, lesson, code) {
   return {
     success: !!result.ok,
     output,
+    vars,
     message: result.message,
   };
 }
@@ -158,7 +162,12 @@ export async function runFreeCode(pyodide, code) {
   const output = outputLines.join("\n");
 
   if (runError) {
-    return { success: false, output, error: cleanErrorMessage(String(runError.message || runError)) };
+    return {
+      success: false,
+      output,
+      error: cleanErrorMessage(String(runError.message || runError)),
+      errorInfo: explainPythonError(String(runError.message || runError), code),
+    };
   }
   return { success: true, output };
 }

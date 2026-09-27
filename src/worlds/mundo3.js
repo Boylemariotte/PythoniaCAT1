@@ -77,6 +77,7 @@ print("Primero:", primero)
 print("Último:", ultimo)
 `,
     expectedVars: ["inventario", "primero", "ultimo"],
+    expected: { vars: { inventario: ["poción", "arco", "escudo"], primero: "poción", ultimo: "escudo" } },
     hints: [
       'Para cambiar un elemento se asigna por índice: inventario[1] = "arco".',
       "primero es inventario[0] (índice 0), y ultimo es inventario[-1] (el índice negativo cuenta desde el final).",
@@ -165,6 +166,7 @@ productos.___("espada")                # ya no la vende: quítala de la lista
 print(productos)
 `,
     expectedVars: ["productos"],
+    expected: { vars: { productos: ["poción", "oferta: casco", "escudo", "armadura"] } },
     hints: [
       "Para agregar al final se usa .append(valor).",
       "Para insertar en una posición concreta: .insert(posición, valor). Para quitar un valor específico (no por índice): .remove(valor).",
@@ -262,6 +264,17 @@ print(celda_peligrosa)
 print(mapa)
 `,
     expectedVars: ["mapa", "fila_del_medio", "celda_peligrosa"],
+    expected: {
+      vars: {
+        mapa: [
+          [0, 0, 1],
+          [0, 1, 0],
+          [0, 0, 0],
+        ],
+        fila_del_medio: [0, 1, 0],
+        celda_peligrosa: 1,
+      },
+    },
     hints: [
       "Para tomar una fila completa, usa un solo índice: mapa[1]. Para un valor específico, usa dos índices: mapa[fila][columna].",
       "mapa[2][0] = 0 cambia solo esa celda; el resto de la matriz queda exactamente igual.",
@@ -360,6 +373,15 @@ for fila in range(tamano):
 print(tablero)
 `,
     expectedVars: ["tablero"],
+    expected: {
+      vars: {
+        tablero: [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1],
+        ],
+      },
+    },
     hints: [
       "En la diagonal (cuando fila == columna) va 1; en cualquier otro caso va 0.",
       "No cambies la estructura de los ciclos — solo completa los dos valores que se agregan con append().",
@@ -488,6 +510,19 @@ print(f"Trampas encontradas: {trampas}")
 print(f"Tesoro en fila {fila_tesoro}, columna {columna_tesoro}")
 `,
     expectedVars: ["mochila", "tablero", "trampas", "fila_tesoro", "columna_tesoro"],
+    expected: {
+      vars: {
+        mochila: ["antorcha", "mapa", "llave"],
+        tablero: [
+          [1, 0, 9],
+          [0, 1, 0],
+          [0, 0, 1],
+        ],
+        trampas: 3,
+        fila_tesoro: 0,
+        columna_tesoro: 2,
+      },
+    },
     hints: [
       'La mochila se arma igual que en la lección de métodos: append("llave") al final, insert(1, "mapa") en la posición 1, remove("cuerda") para quitarla.',
       "El tablero se llena igual que en la lección anterior (1 en la diagonal, 0 en el resto), y luego tablero[0][2] = 9 marca el tesoro. En el conteo, trampas = trampas + 1 sube de a uno cada vez que valor == 1.",

@@ -83,6 +83,7 @@ print(acceso)
 `,
     expectedVars: ["nivel", "clase", "acceso"],
     simulatedInputs: ["7", "mago"],
+    expected: { vars: { nivel: 7, clase: "mago", acceso: "Puedes pasar, tu magia te protege." } },
     hints: [
       "El primer if compara nivel contra el umbral más alto: nivel >= 10.",
       'El elif combina dos condiciones con and: nivel >= 5 and clase == "mago".',
@@ -168,6 +169,10 @@ while ___:
 print("¡Portal abierto!")
 `,
     expectedVars: ["energia"],
+    expected: {
+      output: [5, 4, 3, 2, 1].map((n) => `Energía restante: ${n}`).concat("¡Portal abierto!").join("\n"),
+      vars: { energia: 0 },
+    },
     hints: [
       "La condición del while debe seguir siendo cierta mientras haya energía: energia > 0.",
       "Dentro del ciclo, energia debe reducirse en cada vuelta: energia = energia - 1. Si olvidas esta línea, el ciclo nunca termina.",
@@ -250,6 +255,9 @@ print("¡Portal abierto!")
         print(moneda)
 `,
     expectedVars: [],
+    expected: {
+      output: Array.from({ length: 20 }, (_, i) => ((i + 1) % 3 === 0 ? "¡Pum!" : String(i + 1))).join("\n"),
+    },
     hints: [
       "range(1, ___) no incluye el número final — para llegar hasta 20 inclusive, el segundo argumento debe ser 21.",
       'Un número es múltiplo de 3 si moneda % 3 == 0. En ese caso, imprime "¡Pum!" en vez del número.',
@@ -345,6 +353,9 @@ for puerta in puertas:
     print(f"Puerta {puerta}: vacía")
 `,
     expectedVars: [],
+    expected: {
+      output: ["Puerta 1: vacía", "Puerta 3: vacía", "Puerta 5: vacía", "¡Encontré la llave en la puerta 7!"].join("\n"),
+    },
     hints: [
       "continue salta directo a la siguiente vuelta del ciclo, sin ejecutar el resto del cuerpo para esa puerta.",
       "break corta el ciclo por completo — úsalo justo después de imprimir el mensaje de la puerta 7, antes del print final.",
@@ -444,6 +455,20 @@ for producto in productos:
             print(f"{cantidad} x {producto}: {total} de oro")
 `,
     expectedVars: ["preparacion", "total"],
+    expected: {
+      output: [
+        "Preparando puesto... 3",
+        "Preparando puesto... 2",
+        "Preparando puesto... 1",
+        ...["Poción", "Escudo", "Espada"].flatMap((producto) =>
+          [1, 2, 3].map((cantidad) => {
+            const total = 15 * cantidad;
+            return `${cantidad} x ${producto}: ${total} de oro${total > 40 ? " — ¡Oferta especial!" : ""}`;
+          })
+        ),
+      ].join("\n"),
+      vars: { preparacion: 0, total: 45 },
+    },
     hints: [
       "La cuenta regresiva es igual que en la lección del while: preparacion > 0 como condición, y preparacion = preparacion - 1 para que avance.",
       "range(1, ___) no incluye el límite superior: para las cantidades 1, 2 y 3 necesitas range(1, 4). El total sale de precio_base * cantidad, y la oferta especial aparece cuando total > 40.",

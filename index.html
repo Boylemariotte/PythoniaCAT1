@@ -8,7 +8,12 @@
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
   </head>
   <body class="theme-blue">
+    <a href="#main-content" class="skip-link">Saltar al contenido</a>
     <div id="app"></div>
+    <!-- Región persistente para anunciar a lectores de pantalla resultados que
+         no mueven el foco (respuesta de quiz, pista revelada): ver announce()
+         en main.js. Vive fuera de #app para no perderse en cada rerender. -->
+    <div id="a11y-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
