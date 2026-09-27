@@ -3,7 +3,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, basicSetup } from "codemirror";
 import { python } from "@codemirror/lang-python";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { world, lessons } from "./lessons.js";
+import { worlds } from "./worlds/index.js";
 import { loadPyodideRuntime, runLesson, runFreeCode } from "./pyRunner.js";
 import { checkBackendHealth, fetchProgress, saveProgress } from "./progress.js";
 
@@ -96,8 +96,38 @@ function formatTeachText(text) {
     .join("");
 }
 
+// Ubica una lección por id en cualquier mundo y devuelve el contexto completo
+// (a qué mundo pertenece, la lista de lecciones de ese mundo, y su índice).
+function getLessonContext(id) {
+  for (let worldIndex = 0; worldIndex < worlds.length; worldIndex++) {
+    const entry = worlds[worldIndex];
+    const lessonIndex = entry.lessons.findIndex((l) => l.id === id);
+    if (lessonIndex !== -1) {
+      return { worldIndex, world: entry.world, lessons: entry.lessons, lesson: entry.lessons[lessonIndex], lessonIndex };
+    }
+  }
+  return null;
+}
+
 function getLessonById(id) {
-  return lessons.find((l) => l.id === id);
+  return getLessonContext(id)?.lesson;
+}
+
+function isWorldComplete(worldIndex) {
+  return worlds[worldIndex].lessons.every((l) => state.completed.has(l.id));
+}
+
+function isWorldUnlocked(worldIndex) {
+  // TEMPORAL: todos los mundos desbloqueados para poder probarlos.
+  // Revertir a `worldIndex === 0 || isWorldComplete(worldIndex - 1)` antes de lanzar.
+  return true;
+}
+
+// El mundo "activo" para mostrar en la barra superior fuera de una lección:
+// el primero que todavía no se ha completado (o el último, si ya se completó todo).
+function frontierWorldIndex() {
+  const idx = worlds.findIndex((_, i) => !isWorldComplete(i));
+  return idx === -1 ? worlds.length - 1 : idx;
 }
 
 function navigate(screen, extra = {}) {
@@ -161,13 +191,15 @@ function sidebarHtml() {
 
 function topbarHtml() {
   const level = levelFor(state.xp);
+  const activeWorld =
+    state.screen === "lesson" ? getLessonContext(state.currentLessonId)?.world : worlds[frontierWorldIndex()].world;
   return `
     <div class="topbar">
       <div style="display:flex; align-items:center; gap:0.8rem;">
         <button class="icon-btn" data-action="toggle-sidebar" aria-label="Abrir menú">☰</button>
         <div class="brand">
           <h1>Pythonia</h1>
-          <span class="eyebrow">${world.title}</span>
+          <span class="eyebrow">${activeWorld?.title ?? ""}</span>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:0.7rem;">
@@ -193,18 +225,44 @@ function renderLoading() {
 }
 
 function renderMap() {
-  const doneCount = lessons.filter((l) => state.completed.has(l.id)).length;
-  const pct = Math.round((doneCount / lessons.length) * 100);
+  const worldCards = worlds
+    .map(({ world: w, lessons: worldLessons }, worldIndex) => {
+      if (!isWorldUnlocked(worldIndex)) {
+        return `
+          <div class="locked-world">
+            <div><strong>${w.title}</strong><br>${w.target.replace(/^objetivo: /, "")} — próximamente</div>
+            <span class="mono" style="color:var(--text-dim);">🔒</span>
+          </div>
+        `;
+      }
 
-  const rows = lessons
-    .map((l) => {
-      const done = state.completed.has(l.id);
+      const doneCount = worldLessons.filter((l) => state.completed.has(l.id)).length;
+      const pct = Math.round((doneCount / worldLessons.length) * 100);
+      const rows = worldLessons
+        .map((l) => {
+          const done = state.completed.has(l.id);
+          return `
+            <button class="lesson-row playable ${done ? "done" : ""} ${l.final ? "final" : ""}" data-lesson="${l.id}">
+              <span class="status">${done ? "✓" : l.num}</span>
+              <span class="name">${l.title}</span>
+              <span class="xp">+${l.xp} XP</span>
+            </button>
+          `;
+        })
+        .join("");
+
       return `
-        <button class="lesson-row playable ${done ? "done" : ""} ${l.final ? "final" : ""}" data-lesson="${l.id}">
-          <span class="status">${done ? "✓" : l.num}</span>
-          <span class="name">${l.title}</span>
-          <span class="xp">+${l.xp} XP</span>
-        </button>
+        <div class="world-card">
+          <div class="mundo-head" style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.5rem;">
+            <h2>${w.title}</h2>
+          </div>
+          <span class="world-target">${w.target}</span>
+          <div class="world-progress">
+            <div class="bar"><i style="width:${pct}%"></i></div>
+            <span class="label">${doneCount} / ${worldLessons.length} lecciones completadas</span>
+          </div>
+          <div class="lesson-list">${rows}</div>
+        </div>
       `;
     })
     .join("");
@@ -214,30 +272,7 @@ function renderMap() {
     <div class="shell">
       ${topbarHtml()}
 
-      <div class="world-card">
-        <div class="mundo-head" style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:0.5rem;">
-          <h2>${world.title}</h2>
-        </div>
-        <span class="world-target">${world.target}</span>
-        <div class="world-progress">
-          <div class="bar"><i style="width:${pct}%"></i></div>
-          <span class="label">${doneCount} / ${lessons.length} lecciones completadas</span>
-        </div>
-        <div class="lesson-list">${rows}</div>
-      </div>
-
-      <div class="locked-world">
-        <div><strong>Mundo 2 · El Bosque de los Ciclos</strong><br>ciclos y lógica — próximamente</div>
-        <span class="mono" style="color:var(--text-dim);">🔒</span>
-      </div>
-      <div class="locked-world">
-        <div><strong>Mundo 3 · Las Cuevas de las Matrices</strong><br>lectura y llenado de matrices — próximamente</div>
-        <span class="mono" style="color:var(--text-dim);">🔒</span>
-      </div>
-      <div class="locked-world">
-        <div><strong>Mundo 4 · La Torre de las Clases</strong><br>herencia y POO — próximamente</div>
-        <span class="mono" style="color:var(--text-dim);">🔒</span>
-      </div>
+      ${worldCards}
     </div>
   `;
 
@@ -249,6 +284,10 @@ function renderMap() {
 }
 
 function renderWorldComplete() {
+  const worldIndex = state.completedWorldIndex ?? 0;
+  const { world } = worlds[worldIndex];
+  const nextWorld = worlds[worldIndex + 1];
+
   app.innerHTML = `
     ${sidebarHtml()}
     <div class="shell">
@@ -259,13 +298,25 @@ function renderWorldComplete() {
         </div>
         <span class="eyebrow">Insignia obtenida</span>
         <h2>${world.badge.title}</h2>
-        <p>${world.badge.description} — ¡Mundo 1 completo! Sumaste ${state.xp} XP. Ahora eres <strong>${levelFor(state.xp).name}</strong>.</p>
-        <div style="margin-top:1.5rem;">
-          <button class="btn primary" data-action="back-to-map">Volver al mapa</button>
+        <p>${world.badge.description} — ¡${world.title} completo! Sumaste ${state.xp} XP en total. Ahora eres <strong>${levelFor(state.xp).name}</strong>.</p>
+        <div style="margin-top:1.5rem; display:flex; gap:0.7rem; flex-wrap:wrap;">
+          ${
+            nextWorld
+              ? `<button class="btn primary" id="next-world-btn">Continuar a ${nextWorld.world.title} →</button>`
+              : `<span class="mono" style="color:var(--text-dim);">¡Completaste todos los mundos disponibles por ahora!</span>`
+          }
+          <button class="btn" data-action="back-to-map">Volver al mapa</button>
         </div>
       </div>
     </div>
   `;
+
+  const nextWorldBtn = document.getElementById("next-world-btn");
+  if (nextWorldBtn) {
+    nextWorldBtn.addEventListener("click", () => {
+      navigate("lesson", { currentLessonId: nextWorld.lessons[0].id });
+    });
+  }
 }
 
 function renderQuizOptions(options, kind, lessonId) {
@@ -513,7 +564,8 @@ async function handleRun() {
 function showSuccessPanel(lesson, { message, alreadyDone } = {}) {
   const slot = document.getElementById("success-slot");
   if (!slot) return;
-  const isLast = lesson.num === lessons.length;
+  const context = getLessonContext(lesson.id);
+  const isLast = lesson.num === context.lessons.length;
   slot.innerHTML = `
     <div class="success-panel">
       <div>
@@ -534,9 +586,9 @@ function showSuccessPanel(lesson, { message, alreadyDone } = {}) {
   `;
   document.getElementById("next-btn").addEventListener("click", () => {
     if (isLast) {
-      navigate("world-complete");
+      navigate("world-complete", { completedWorldIndex: context.worldIndex });
     } else {
-      const next = lessons[lesson.num];
+      const next = context.lessons[lesson.num];
       navigate("lesson", { currentLessonId: next.id });
     }
   });
